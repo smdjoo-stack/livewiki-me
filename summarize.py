@@ -44,6 +44,12 @@ def ask_claude_subscription(prompt):
     import shutil
     import subprocess
     exe = shutil.which("claude")
+    if not exe:  # 크롬에서 실행되면 PATH가 짧을 수 있어 기본 설치 위치도 확인
+        for cand in (Path.home() / ".local" / "bin" / "claude",
+                     Path.home() / ".local" / "bin" / "claude.exe"):
+            if cand.exists():
+                exe = str(cand)
+                break
     if not exe:
         sys.exit("❌ 요약에 쓸 Claude 연결 정보가 없습니다.\n"
                  "크롬 패널의 ⚙️ 설정에서 'API 키'를 넣거나, Claude Code를 설치한 뒤 '구독 토큰'을 넣어 주세요.")
@@ -56,6 +62,7 @@ def ask_claude_subscription(prompt):
     r = subprocess.run(
         [exe, "-p", "--model", MODEL, "--tools", "", "--output-format", "text"],
         input=prompt, capture_output=True, text=True, env=env, timeout=900,
+        encoding="utf-8", errors="replace",  # 한국어 윈도우(CP949)에서도 한글이 깨지지 않게
         cwd=OUT_DIR.parent,
     )
     if r.returncode != 0 or not r.stdout.strip():
@@ -63,6 +70,9 @@ def ask_claude_subscription(prompt):
         if "log" in detail.lower() and ("login" in detail.lower() or "logged" in detail.lower()):
             sys.exit("❌ Claude 로그인 정보를 찾지 못했습니다.\n"
                      "크롬 패널의 ⚙️ 설정에서 '구독 토큰'(claude setup-token으로 받은 값)이나 'API 키'를 넣어 주세요.\n\n" + detail)
+        if "git-bash" in detail.lower() or "git bash" in detail.lower():
+            sys.exit("❌ 윈도우에서 Claude Code를 쓰려면 'Git for Windows'가 필요합니다.\n"
+                     "https://git-scm.com/download/win 에서 설치한 뒤 다시 시도하거나, ⚙️ 설정에서 API 키를 넣어 주세요.\n\n" + detail)
         if "401" in detail or "invalid" in detail.lower():
             sys.exit("❌ 구독 토큰이 올바르지 않거나 만료되었습니다. ⚙️ 설정에서 새 토큰을 넣어 주세요.\n\n" + detail)
         sys.exit(f"❌ Claude Code 호출 실패: {detail}")
@@ -109,7 +119,8 @@ def split_chunks(text, limit=None):
 
 def safe_filename(name):
     name = re.sub(r'[\\/:*?"<>|\n\r\t]', " ", name).strip()
-    return re.sub(r"\s+", " ", name)[:80] or "summary"
+    # 윈도우는 파일 이름 끝의 점·공백을 허용하지 않음
+    return re.sub(r"\s+", " ", name)[:80].rstrip(". ") or "summary"
 
 
 def save(title, body, source, out_dir=None):

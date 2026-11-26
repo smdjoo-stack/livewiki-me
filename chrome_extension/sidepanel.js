@@ -83,10 +83,10 @@ function showReply(reply) {
 let saveDir = "";
 
 function shortPath(p) {
-  return (p || "").replace(/^\/Users\/[^/]+/, "~");
+  return (p || "").replace(/^\/Users\/[^/]+/, "~").replace(/^[A-Za-z]:\\Users\\[^\\]+/, "~");
 }
 function folderName(p) {
-  return (p || "").split("/").filter(Boolean).pop() || p;
+  return (p || "").split(/[\\/]/).filter(Boolean).pop() || p;
 }
 
 function updateSaveUI() {
@@ -566,6 +566,10 @@ $("settings-setdir").addEventListener("click", async () => {
 (async () => {
   // 처음 설치해서 연결 정보가 없으면 설정 화면부터
   const st = await askHost({ action: "status" });
+  if (st.ok && st.os === "win32") {
+    $("reveal").textContent = "탐색기";
+    document.body.classList.add("win");
+  }
   if (st.ok && st.mode === "none") {
     await chrome.storage.session.remove("autostart");
     openSettings("처음 사용하시네요. Claude 연결부터 설정해 주세요.");

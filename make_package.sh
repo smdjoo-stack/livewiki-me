@@ -1,5 +1,5 @@
 #!/bin/bash
-# 테스터에게 보낼 zip 만들기 → dist/LiveWikiMe-테스트판-날짜.zip
+# 테스터에게 보낼 zip 만들기 (Mac + Windows 공용) → dist/LiveWikiMe-test-날짜.zip
 # 개인 파일(토큰·API 키·설정·요약·로그·확장 열쇠)은 넣지 않음
 set -e
 ROOT="$(cd "$(dirname "$0")" && pwd)"
@@ -8,11 +8,13 @@ PKG="$OUT/LiveWikiMe"
 rm -rf "$PKG"
 mkdir -p "$PKG/app/native_host" "$PKG/app/chrome_extension"
 
-cp "$ROOT/packaging/install.sh" "$ROOT/packaging/uninstall.sh" \
-   "$ROOT/packaging/install.command" "$ROOT/packaging/uninstall.command" \
-   "$ROOT/packaging/설치 안내.html" "$PKG/"
+# 설치·삭제 (Mac: .sh/.command, Windows: .bat/_win.py) + 안내서
+for f in install.sh uninstall.sh install.command uninstall.command \
+         install.bat uninstall.bat install_win.py uninstall_win.py INSTALL-GUIDE.html; do
+  cp "$ROOT/packaging/$f" "$PKG/"
+done
 cp "$ROOT/summarize.py" "$PKG/app/"
-cp "$ROOT/native_host/livewiki_host.py" "$ROOT/native_host/run_host.sh" "$PKG/app/native_host/"
+cp "$ROOT/native_host/livewiki_host.py" "$ROOT/native_host/run_host.sh" "$ROOT/native_host/run_host.bat" "$PKG/app/native_host/"
 for f in manifest.json background.js content.js content.css sidepanel.html sidepanel.css sidepanel.js; do
   cp "$ROOT/chrome_extension/$f" "$PKG/app/chrome_extension/"
 done
@@ -27,7 +29,19 @@ if grep -rqE "sk-ant-(oat|api)[0-9]{2}-[A-Za-z0-9_-]{20,}" "$PKG"; then
   echo "❌ 토큰/키로 보이는 값이 포함되어 중단합니다"; exit 1
 fi
 
+# Python zipfile로 압축: 윈도우에서도 파일 이름(UTF-8)과 맥 실행 권한이 유지됨
 ZIP="$OUT/LiveWikiMe-test-$(date +%Y%m%d).zip"
 rm -f "$ZIP"
-(cd "$OUT" && ditto -c -k --keepParent --norsrc --noextattr LiveWikiMe "$ZIP")
+python3 - "$OUT" "$ZIP" <<'PY'
+import os, sys, zipfile
+out, zpath = sys.argv[1], sys.argv[2]
+with zipfile.ZipFile(zpath, "w", zipfile.ZIP_DEFLATED) as z:
+    for root, dirs, files in os.walk(os.path.join(out, "LiveWikiMe")):
+        dirs.sort()
+        for name in sorted(files):
+            if name == ".DS_Store":
+                continue
+            full = os.path.join(root, name)
+            z.write(full, os.path.relpath(full, out))
+PY
 echo "✅ 만들었어요: $ZIP"

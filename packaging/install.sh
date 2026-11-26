@@ -62,7 +62,7 @@ echo "2/4 프로그램 복사 → $DEST"
 mkdir -p "$DEST"
 # 코드만 덮어씀. summaries / .drafts / settings.json / 토큰·API 키 파일은 건드리지 않음
 cp -R "$SRC/app/." "$DEST/"
-cp "$SRC/uninstall.sh" "$SRC/설치 안내.html" "$DEST/" 2>/dev/null || true
+cp "$SRC/uninstall.sh" "$SRC/INSTALL-GUIDE.html" "$DEST/" 2>/dev/null || true
 chmod +x "$DEST/native_host/run_host.sh" "$DEST/uninstall.sh" 2>/dev/null || true
 mkdir -p "$DEST/summaries"
 ok "복사 완료"

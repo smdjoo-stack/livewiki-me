@@ -81,8 +81,26 @@ def saved_dirs():
     return out
 
 
+IS_WIN = sys.platform == "win32"
+
+
 def choose_folder(prompt, start):
-    """Mac 폴더 선택 창. 취소하면 None"""
+    """폴더 선택 창(맥: Finder 창, 윈도우: 폴더 찾아보기 창). 취소하면 None"""
+    if IS_WIN:
+        def ps_quote(t):
+            return "'" + str(t).replace("'", "''") + "'"
+        ps = (
+            "[Console]::OutputEncoding=[Text.Encoding]::UTF8;"
+            "Add-Type -AssemblyName System.Windows.Forms;"
+            "$o=New-Object System.Windows.Forms.Form -Property @{TopMost=$true};"
+            "$d=New-Object System.Windows.Forms.FolderBrowserDialog;"
+            f"$d.Description={ps_quote(prompt)};"
+            f"$d.SelectedPath={ps_quote(start)};"
+            "if($d.ShowDialog($o) -eq 'OK'){[Console]::Out.Write($d.SelectedPath)}"
+        )
+        r = subprocess.run(["powershell", "-NoProfile", "-STA", "-Command", ps],
+                           capture_output=True, text=True, encoding="utf-8", errors="replace")
+        return r.stdout.strip() or None
     script = [
         "-e", "activate",
         "-e", f'set f to choose folder with prompt "{prompt}" default location (POSIX file "{start}")',
@@ -92,6 +110,14 @@ def choose_folder(prompt, start):
     if r.returncode != 0:
         return None  # 취소(-128) 등
     return r.stdout.strip().rstrip("/") or None
+
+
+def reveal(path):
+    """파일 위치를 Finder(맥) / 탐색기(윈도우)에서 보여 줌"""
+    if IS_WIN:
+        subprocess.run(["explorer", "/select,", str(path)])
+    else:
+        subprocess.run(["open", "-R", str(path)])
 
 
 def is_ours(path):
@@ -151,7 +177,7 @@ def handle(msg):
     if action == "reveal":
         path = Path(msg.get("path", ""))
         if is_ours(path):
-            subprocess.run(["open", "-R", str(path)])
+            reveal(path)
             return {"ok": True}
         return {"ok": False, "error": "파일을 찾지 못했습니다."}
 
@@ -160,10 +186,12 @@ def handle(msg):
         import shutil as _sh
         has_key = bool(summarize.load_api_key())
         has_token = (BASE_DIR / "claude_token.txt").exists()
-        has_cli = _sh.which("claude") is not None
+        has_cli = _sh.which("claude") is not None or any(
+            (Path.home() / ".local" / "bin" / n).exists() for n in ("claude", "claude.exe"))
         mode = "api" if has_key else ("token" if has_token and has_cli else "none")
         return {"ok": True, "mode": mode, "has_api_key": has_key, "has_token": has_token,
-                "has_cli": has_cli, "save_dir": load_settings()["save_dir"], "model": summarize.MODEL}
+                "has_cli": has_cli, "save_dir": load_settings()["save_dir"], "model": summarize.MODEL,
+                "os": sys.platform}
 
     if action == "set_credential":
         # 패널에서 붙여넣은 구독 토큰/API 키를 파일로 저장 (빈 값이면 삭제)

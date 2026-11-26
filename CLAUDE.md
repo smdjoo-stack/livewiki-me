@@ -44,6 +44,14 @@ python3 -m venv .venv
 - 확인: 가짜 홈 폴더에서 zip→설치→토큰→요약→저장까지 통과, Python 3.9(Mac 기본)에서 패키지·자막 OK. 실제 API 키로는 미시험(키 없음).
 - 사용자 본인 Mac은 기존 방식(프로젝트 폴더 + `~/Library/Application Support/livewiki/run_host.sh`) 그대로.
 
+## Windows 지원 (2026-11-26, 실제 윈도우에서는 미시험)
+- 설치: `install.bat`(ASCII·CRLF, Python 찾기/없으면 winget) → `install_win.py`(복사 `%USERPROFILE%\LiveWikiMe`, venv, manifest json, 레지스트리 HKCU\Software\{Google\Chrome|Microsoft\Edge|BraveSoftware\Brave-Browser|Chromium}\NativeMessagingHosts\com.livewiki.me).
+- 시작 프로그램 `native_host/run_host.bat`: `python -I -X utf8` (한국어 윈도우 CP949 문제 회피), PATH에 `%USERPROFILE%\.local\bin`·`%APPDATA%\npm` 추가.
+- 호스트: 폴더 선택은 PowerShell FolderBrowserDialog, 보기는 `explorer /select,`. status에 `os` 포함 → 패널이 'Finder'/'탐색기' 표시.
+- summarize: subprocess encoding utf-8, 파일명 끝 점·공백 제거, Claude Code의 git-bash 요구 오류 안내.
+- 맥에서 가짜 winreg로 install_win.py 끝까지, 호스트 윈도우 분기 명령 생성까지만 확인. 윈도우 테스터 필요.
+- 안내서 파일명 `INSTALL-GUIDE.html`(윈도우 압축 해제 시 한글 파일명 깨짐 회피), zip은 Python zipfile로 생성.
+
 ## GitHub
 - 비공개 저장소: https://github.com/smdjoo-stack/livewiki-me (main). 테스터 zip은 Releases(v0.1.0 prerelease)에 첨부. 새 버전: `./make_package.sh` → `gh release create vX.Y.Z dist/LiveWikiMe-test-날짜.zip --prerelease`. 자산 파일명은 영문만(GitHub가 한글 제거).
 
