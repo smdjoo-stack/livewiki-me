@@ -44,6 +44,14 @@ python3 -m venv .venv
 - 확인: 가짜 홈 폴더에서 zip→설치→토큰→요약→저장까지 통과, Python 3.9(Mac 기본)에서 패키지·자막 OK. 실제 API 키로는 미시험(키 없음).
 - 사용자 본인 Mac은 기존 방식(프로젝트 폴더 + `~/Library/Application Support/livewiki/run_host.sh`) 그대로.
 
+## 뉴스·블로그 요약 (2026-11-27)
+- 패널이 유튜브 영상과 일반 웹 글(유튜브·웹스토어 제외 http/https)을 따라감. 식별자 `current.key` = `yt:영상ID` / `web:주소`. 채팅 기록 키는 영상은 예전 그대로(lw-chat-영상ID).
+- 본문 추출: `chrome.scripting.executeScript(allFrames)`로 `lib/Readability.js`(@mozilla/readability 0.5.0) + `lib/extract.js` 주입 → 칸(iframe)마다 추출해 가장 긴 본문 선택(PC 네이버 블로그는 mainFrame 안에 본문). 200자 미만이면 실패 안내.
+- 권한: optional_host_permissions(모든 http/https)을 버튼 누를 때 요청 + activeTab(툴바·오른쪽 클릭 메뉴). 오른쪽 클릭 메뉴 '라이브위키로 이 페이지 요약'.
+- 호스트 action `summarize_page`(url, title, site, byline, published, text, force, cached_only). URL에서 추적 꼬리(utm_*, section, site, from, fbclid 등) 제거 후 `> 출처: URL` 줄로 같은 글 찾기.
+- summarize.do_page: WEB_FULL/WEB_PART, 섹션 = 핵심 요약 / 아티클 요약 / 구성별 요약 / 원문. 헤더에 사이트·작성자·날짜 줄.
+- 확인: 연합뉴스, gotquestions.org(한국어), PC·모바일 네이버 블로그 추출(jsdom) + gotquestions·모바일 네이버 실제 요약(17~22초). 실제 크롬 화면은 미확인.
+
 ## 인증 방식 (2026-11-26 테스터 후기 반영)
 - 우선순위: API 키(api_key.txt) → 구독 토큰(claude_token.txt) → **Claude Code 기존 로그인(keychain)**. launchd 환경(크롬과 동일)에서 토큰 없이 연결 시험·요약 성공 확인 → 구독자는 아무것도 넣을 필요 없음. 처음의 "크롬에선 로그인 못 읽음" 결론은 env -i 흉내 환경 때문이었음.
 - status mode: api / token / cli / none. 토큰 저장 시 공백·줄바꿈 제거, •••(가려진 값)·90자 미만 거부, 저장 후 자동 연결 시험.

@@ -13,14 +13,14 @@
 
   <main>
     <section id="idle" class="state" hidden>
-      <p class="muted" id="idle-text">유튜브 영상 페이지에서 사용할 수 있어요.</p>
+      <p class="muted" id="idle-text">유튜브 영상이나 뉴스·블로그 글에서 사용할 수 있어요.</p>
       <button id="start" class="primary" hidden>이 영상 요약하기</button>
     </section>
 
     <section id="loading" class="state" hidden>
       <div class="spinner"></div>
       <p><b>요약 중…</b></p>
-      <p class="muted">보통 30초~1분, 긴 영상은 몇 분 걸려요.<br>이 패널은 열어 두세요.</p>
+      <p class="muted" id="loading-hint">보통 30초~1분, 긴 영상은 몇 분 걸려요.<br>이 패널은 열어 두세요.</p>
       <p class="muted" id="loading-next" hidden>⏭ 끝나면 다음 영상을 이어서 요약해요.</p>
     </section>
 

@@ -36,13 +36,67 @@ function askHost(message) {
 let pending = null; // 요약 중에 다른 영상 요약을 누르면 여기에 대기
 let syncing = 0;    // 탭 따라가기 요청 번호 (오래된 응답 무시용)
 
+// 유튜브 외의 일반 웹 페이지(뉴스·블로그)인지
+function isWebPage(url) {
+  try {
+    const u = new URL(url);
+    return /^https?:$/.test(u.protocol) &&
+      !/(^|\.)youtube\.com$/.test(u.hostname) &&
+      !/(^|\.)(chromewebstore\.google\.com|chrome\.google\.com)$/.test(u.hostname);
+  } catch (_) {
+    return false;
+  }
+}
+
+// 지금 보고 있는 대상의 이름표: 영상 "yt:ID" / 웹 글 "web:주소"
+function docKey(url) {
+  const v = videoId(url);
+  if (v) return "yt:" + v;
+  if (isWebPage(url)) return "web:" + url.split("#")[0];
+  return null;
+}
+
 function freshCurrent(url, tabId) {
-  return { url, tabId, vid: videoId(url), path: null, markdown: "", sections: [], active: 0 };
+  const vid = videoId(url);
+  return { url, tabId, vid, key: docKey(url), kind: vid ? "video" : "page", path: null, markdown: "", sections: [], active: 0 };
+}
+
+// ── 웹 글 본문 읽기 (모든 칸(iframe)에서 읽고 가장 긴 본문 선택 → 네이버 블로그 대응) ──
+const WEB_ORIGINS = ["https://*/*", "http://*/*"];
+function requestPagePermission() {
+  // 버튼을 누른 순간에 바로 불러야 크롬이 허용 창을 띄움 (이미 허용했으면 창 없이 통과)
+  try {
+    return chrome.permissions.request({ origins: WEB_ORIGINS }).catch(() => false);
+  } catch (_) {
+    return Promise.resolve(false);
+  }
+}
+
+async function extractPage(tabId) {
+  const files = ["lib/Readability.js", "lib/extract.js"];
+  let results;
+  try {
+    results = await chrome.scripting.executeScript({ target: { tabId, allFrames: true }, files });
+  } catch (e) {
+    try {
+      results = await chrome.scripting.executeScript({ target: { tabId }, files }); // 바깥 페이지만이라도
+    } catch (e2) {
+      return {
+        ok: false,
+        error: "이 페이지를 읽을 권한이 없어요.\n'다시 시도'를 누르고, 크롬이 묻는 창에서 '허용'을 눌러 주세요.\n\n(" + e2.message + ")",
+      };
+    }
+  }
+  const best = (results || []).map((r) => r.result).filter(Boolean).sort((a, b) => b.length - a.length)[0];
+  if (!best || best.length < 200) {
+    return { ok: false, error: "본문을 거의 찾지 못했어요.\n로그인이 필요한 글이거나, 글 대부분이 이미지인 페이지일 수 있어요." };
+  }
+  return { ok: true, data: { title: best.title, site: best.site, byline: best.byline, published: best.published, text: best.text } };
 }
 
 async function summarize(url, tabId, force = false) {
   if (busy) {
-    if (videoId(url) !== current.vid || force) {
+    if (docKey(url) !== current.key || force) {
       pending = { url, tabId, force };
       $("loading-next").hidden = false;
     }
@@ -52,8 +106,17 @@ async function summarize(url, tabId, force = false) {
   syncing++;
   current = freshCurrent(url, tabId);
   $("loading-next").hidden = true;
+  $("loading-hint").innerHTML = current.kind === "page"
+    ? "글을 읽고 요약하는 중이에요. 보통 10~30초 걸려요."
+    : "보통 30초~1분, 긴 영상은 몇 분 걸려요.<br>이 패널은 열어 두세요.";
   show("loading");
-  const reply = await askHost({ action: "summarize", url, force });
+  let reply;
+  if (current.kind === "video") {
+    reply = await askHost({ action: "summarize", url, force });
+  } else {
+    const page = await extractPage(tabId);
+    reply = page.ok ? await askHost({ action: "summarize_page", url, force, ...page.data }) : page;
+  }
   busy = false;
   if (pending) {
     // 대기 중인 다음 영상으로 (방금 것도 summaries 폴더에는 저장됨)
@@ -109,12 +172,12 @@ async function loadSettings() {
 
 async function doSave(other) {
   if (!current.path) return;
-  const vid = current.vid;
+  const vid = current.key;
   $("save-menu").hidden = true;
   $("save").disabled = true;
   if (other) $("save-note").textContent = "폴더 선택 창을 확인하세요…";
   const reply = await askHost({ action: "save", path: current.path, other });
-  if (current.vid !== vid) return;
+  if (current.key !== vid) return;
   if (!reply.ok) {
     updateSaveUI();
     if (!reply.cancelled) $("save-note").textContent = "저장 실패: " + reply.error;
@@ -151,7 +214,7 @@ $("save-menu").addEventListener("click", async (e) => {
 loadSettings();
 
 // ── 섹션(## 제목)별로 나눠 탭으로 보여주기 ─────────────
-const SHORT = { "핵심 요약": "핵심", "아티클 요약": "아티클", "타임라인 요약": "타임라인", "전체 스크립트": "스크립트", "구성별 요약": "구성별" };
+const SHORT = { "핵심 요약": "핵심", "아티클 요약": "아티클", "타임라인 요약": "타임라인", "전체 스크립트": "스크립트", "구성별 요약": "구성", "원문": "원문" };
 
 function splitSections(md) {
   const head = [], sections = [];
@@ -216,7 +279,8 @@ function selectTab(i) {
 const SUGGEST = ["이 영상의 결론은 뭔가요?", "내 삶에 적용할 점 3가지", "어려운 용어를 쉽게 풀어 주세요", "가장 인상적인 예화는?"];
 let chat = { vid: null, msgs: [], waiting: false };
 
-function chatKey(vid) { return "lw-chat-" + vid; }
+// 예전(영상 ID만 쓰던) 대화 기록도 그대로 이어지게
+function chatKey(key) { return "lw-chat-" + (key && key.startsWith("yt:") ? key.slice(3) : key); }
 
 function chatSectionHtml(i) {
   return `<div class="section chat" data-i="${i}" hidden>
@@ -232,8 +296,8 @@ function chatSectionHtml(i) {
 }
 
 function setupChat() {
-  chat = { vid: current.vid, msgs: [], waiting: false };
-  try { chat.msgs = JSON.parse(localStorage.getItem(chatKey(current.vid)) || "[]"); } catch (_) {}
+  chat = { vid: current.key, msgs: [], waiting: false };
+  try { chat.msgs = JSON.parse(localStorage.getItem(chatKey(current.key)) || "[]"); } catch (_) {}
   drawChat();
   $("chat-form").addEventListener("submit", (e) => { e.preventDefault(); sendChat($("chat-input").value); });
   $("chat-input").addEventListener("keydown", (e) => {
@@ -429,42 +493,57 @@ $("copy-sec").addEventListener("click", () => {
 });
 $("copy-all").addEventListener("click", () => copyText($("copy-all"), plainText(current.markdown), "전체 복사"));
 $("reveal").addEventListener("click", () => current.saved && askHost({ action: "reveal", path: current.path }));
-$("redo").addEventListener("click", () => current.url && summarize(current.url, current.tabId, true));
-$("retry").addEventListener("click", () => current.url && summarize(current.url, current.tabId));
-$("start").addEventListener("click", async () => {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (tab && videoId(tab.url)) summarize(tab.url, tab.id);
-});
+function withPermission(fn) {
+  const perm = current.kind === "page" ? requestPagePermission() : Promise.resolve(true);
+  perm.then(fn);
+}
+$("redo").addEventListener("click", () => current.url && withPermission(() => summarize(current.url, current.tabId, true)));
+$("retry").addEventListener("click", () => current.url && withPermission(() => summarize(current.url, current.tabId)));
+$("start").addEventListener("click", () =>
+  withPermission(async () => {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab && docKey(tab.url)) summarize(tab.url, tab.id);
+  })
+);
 
 // ── 처음 열릴 때 / 탭이 바뀔 때 ─────────────────────
 // ── 지금 보고 있는 탭의 영상 따라가기 ─────────────────
-function showIdle(isVideo) {
-  $("idle-text").textContent = isVideo ? "이 영상은 아직 요약하지 않았어요." : "유튜브 영상 페이지에서 사용할 수 있어요.";
-  $("start").hidden = !isVideo;
+function showIdle(kind, title) {
+  if (kind === "video") {
+    $("idle-text").textContent = "이 영상은 아직 요약하지 않았어요.";
+    $("start").textContent = "이 영상 요약하기";
+  } else if (kind === "page") {
+    $("idle-text").innerHTML = "이 글은 아직 요약하지 않았어요." + (title ? `<br><b>${esc(title)}</b>` : "");
+    $("start").textContent = "이 글 요약하기";
+  } else {
+    $("idle-text").textContent = "유튜브 영상이나 뉴스·블로그 글에서 사용할 수 있어요.";
+  }
+  $("start").hidden = !kind;
   show("idle");
 }
 
 async function syncWithTab() {
   if (busy || viewState === "settings") return; // 요약 중·설정 중에는 화면을 바꾸지 않음
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  const vid = tab && videoId(tab.url);
-  if (!vid) {
-    // 유튜브 홈 등: 보고 있던 요약은 그대로 두고, 빈 화면일 때만 안내
-    if (!current.vid) showIdle(false);
+  const key = tab && docKey(tab.url);
+  if (!key) {
+    // 크롬 설정 페이지 등: 보고 있던 요약은 그대로 두고, 빈 화면일 때만 안내
+    if (!current.key) showIdle(null);
     return;
   }
-  if (vid === current.vid) {
+  if (key === current.key) {
     current.tabId = tab.id;
     current.url = tab.url;
     return;
   }
-  // 다른 영상으로 바뀜 → 저장된 요약이 있으면 바로 보여 주고, 없으면 요약하기 버튼
+  // 다른 영상·글로 바뀜 → 요약해 둔 것이 있으면 바로 보여 주고, 없으면 요약하기 버튼
   const my = ++syncing;
   current = freshCurrent(tab.url, tab.id);
-  const reply = await askHost({ action: "summarize", url: tab.url, cached_only: true });
+  const action = current.kind === "video" ? "summarize" : "summarize_page";
+  const reply = await askHost({ action, url: tab.url, cached_only: true });
   if (my !== syncing || busy) return;
   if (reply.ok && reply.found !== false) showReply(reply);
-  else showIdle(true);
+  else showIdle(current.kind, tab.title);
 }
 
 async function checkAutostart() {
@@ -475,7 +554,7 @@ async function checkAutostart() {
     let url = autostart.url;
     try {
       const tab = await chrome.tabs.get(autostart.tabId);
-      if (videoId(tab.url)) url = tab.url;
+      if (docKey(tab.url)) url = tab.url;
     } catch (_) {}
     summarize(url, autostart.tabId);
     return true;

@@ -132,9 +132,22 @@ def is_saved(path):
     return summarize.DRAFT_DIR not in Path(path).parents
 
 
-def find_existing(vid):
-    """저장 폴더들 + 임시 폴더에서 이 영상의 가장 최근 요약을 찾음 (구독 사용량 절약)"""
-    marker = f"watch?v={vid}"
+# 같은 글로 알아보기 위해 떼어 내는 추적용 꼬리 (글 번호가 들어 있는 값은 건드리지 않음)
+TRACKING_KEYS = {"fbclid", "gclid", "igshid", "ref", "ref_src", "from", "site", "section", "src",
+                 "cmpid", "sns", "trackingcode", "napm", "mc_cid", "mc_eid", "spm", "share", "utm"}
+
+
+def normalize_url(url):
+    from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
+    u = urlsplit(url.strip())
+    query = [(k, v) for k, v in parse_qsl(u.query, keep_blank_values=True)
+             if not k.lower().startswith("utm_") and k.lower() not in TRACKING_KEYS]
+    return urlunsplit((u.scheme, u.netloc.lower(), u.path, urlencode(query), ""))
+
+
+def find_existing(vid=None, page_url=None):
+    """저장 폴더들 + 임시 폴더에서 이 영상(또는 웹 글)의 가장 최근 요약을 찾음 (구독 사용량 절약)"""
+    marker = f"watch?v={vid}" if vid else f"> 출처: {page_url}  \n"
     found = []
     for folder in saved_dirs() + [summarize.DRAFT_DIR]:
         if not folder.exists():
@@ -285,12 +298,31 @@ def handle(msg):
             return {"ok": False, "error": str(e.code or "알 수 없는 오류")}
         return {"ok": True, "answer": answer}
 
+    if action == "summarize_page":
+        # 뉴스·블로그: 크롬이 페이지에서 뽑아 온 본문을 받아 요약
+        url = normalize_url(msg.get("url", ""))
+        if not url.startswith("http"):
+            return {"ok": False, "error": "웹 페이지 주소가 아닙니다."}
+        path = None if msg.get("force") else find_existing(page_url=url)
+        if path:
+            return reply_for(path, True)
+        if msg.get("cached_only"):
+            return {"ok": True, "found": False}
+        text = msg.get("text") or ""
+        info = " · ".join(x for x in (msg.get("site"), msg.get("byline"), (msg.get("published") or "")[:10]) if x)
+        clean_drafts()
+        try:
+            path = summarize.do_page(url, msg.get("title"), text, info, out_dir=summarize.DRAFT_DIR)
+        except SystemExit as e:
+            return {"ok": False, "error": str(e.code or "알 수 없는 오류")}
+        return reply_for(path, False)
+
     if action == "summarize":
         url = msg.get("url", "")
         vid = summarize.video_id_from(url)
         if not vid:
             return {"ok": False, "error": "유튜브 영상 주소가 아닙니다."}
-        path = None if msg.get("force") else find_existing(vid)
+        path = None if msg.get("force") else find_existing(vid=vid)
         if path:
             return reply_for(path, True)
         if msg.get("cached_only"):

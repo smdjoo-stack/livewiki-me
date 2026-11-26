@@ -18,6 +18,10 @@ cp "$ROOT/native_host/livewiki_host.py" "$ROOT/native_host/run_host.sh" "$ROOT/n
 for f in manifest.json background.js content.js content.css sidepanel.html sidepanel.css sidepanel.js; do
   cp "$ROOT/chrome_extension/$f" "$PKG/app/chrome_extension/"
 done
+# 웹 글 본문 추출 도구 (Mozilla Readability, Apache-2.0) + 추출 코드
+mkdir -p "$PKG/app/chrome_extension/lib"
+cp "$ROOT/chrome_extension/lib/Readability.js" "$ROOT/chrome_extension/lib/extract.js" "$PKG/app/chrome_extension/lib/"
+cp "$ROOT/chrome_extension/lib/Readability-LICENSE.md" "$PKG/app/chrome_extension/lib/Readability-LICENSE.txt"
 chmod +x "$PKG"/*.sh "$PKG"/*.command "$PKG/app/native_host/run_host.sh"
 
 # 혹시 개인 파일이 섞였는지 마지막 확인

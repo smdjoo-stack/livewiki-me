@@ -124,12 +124,13 @@ def safe_filename(name):
     return re.sub(r"\s+", " ", name)[:80].rstrip(". ") or "summary"
 
 
-def save(title, body, source, out_dir=None):
+def save(title, body, source, out_dir=None, info=""):
     out_dir = out_dir or OUT_DIR
     out_dir.mkdir(exist_ok=True)
     stamp = datetime.now().strftime("%Y-%m-%d")
     path = out_dir / f"{stamp} {safe_filename(title)}.md"
-    header = f"# {title}\n\n> 출처: {source}  \n> 요약일: {stamp}\n\n"
+    extra = f"> {info}  \n" if info else ""
+    header = f"# {title}\n\n> 출처: {source}  \n{extra}> 요약일: {stamp}\n\n"
     path.write_text(header + body + "\n", encoding="utf-8")
     return path
 
@@ -304,12 +305,56 @@ def do_youtube(url, out_dir=None):
     return save(title, body, f"https://www.youtube.com/watch?v={vid}", out_dir)
 
 
+# ── 웹 글 (뉴스·블로그) ─────────────────────────────────
+WEB_FULL = """다음은 웹 글 「{title}」({info})의 본문입니다.
+결과는 한국어로, 아래 마크다운 형식 그대로 정리하세요. 다른 말은 덧붙이지 마세요.
+
+""" + HEAD_FORMAT + """
+  (웹 글 분량 기준: 약 1,500자당 소제목 1개. 2,000자 미만의 짧은 글은 소제목 2개, 많아야 15개.
+   화자 대신 글쓴이·언론사를 소개 섹션에서 한 번만 밝힙니다.)
+
+## 구성별 요약
+(글의 흐름에 따라 구간을 나눠서, 각 구간을 아래 형식으로)
+### 구간 제목
+- 2~3줄 요약
+
+규칙: 본문에 없는 내용은 지어내지 마세요. 본문에 섞여 들어온 광고·메뉴·사진 설명·구독 안내 같은 군더더기는 무시하세요.
+
+<본문>
+{{body}}
+</본문>"""
+
+WEB_PART = """다음은 웹 글 「{title}」 본문의 일부입니다. 이 부분만 한국어로 구성별 요약을 쓰세요.
+형식(제목 없이 바로 시작):
+### 구간 제목
+- 2~3줄 요약
+
+<본문>
+{{body}}
+</본문>"""
+
+
+def do_page(url, title, text, info="", out_dir=None):
+    """브라우저에서 뽑아 온 웹 글 본문을 요약. url은 정리된(추적 꼬리 뗀) 주소"""
+    title = (title or url).strip()
+    print(f"📰 {title}")
+    if len(text.strip()) < 200:
+        sys.exit("❌ 본문을 거의 찾지 못했습니다. 로그인이 필요한 글이거나, 글 대부분이 이미지인 페이지일 수 있어요.")
+    print("   AI 요약 중…")
+    t = title.replace("{", "(").replace("}", ")")
+    i = (info or "출처 정보 없음").replace("{", "(").replace("}", ")")
+    merge = MERGE.format(title=t).replace('"## 타임라인 요약"', '"## 구성별 요약"')
+    body = summarize_long(text, WEB_FULL.format(title=t, info=i), WEB_PART.format(title=t), merge)
+    body += "\n\n## 원문\n\n" + text.strip()
+    return save(title, body, url, out_dir, info)
+
+
 # ── AI 채팅 (요약 파일을 바탕으로 질문에 답하기) ─────────────
-CHAT_RULES = """당신은 아래 <자료>(영상/문서의 요약과 전체 스크립트)를 바탕으로 사용자의 질문에 답하는 도우미입니다.
+CHAT_RULES = """당신은 아래 <자료>(영상·문서·웹 글의 요약과 원문/전체 스크립트)를 바탕으로 사용자의 질문에 답하는 도우미입니다.
 규칙:
 - 한국어 합니다체로, 질문에 바로 답합니다. 필요하면 짧은 목록이나 **굵게**를 씁니다.
 - 자료에 있는 내용으로 답하고, 근거가 되는 장면의 시간을 [mm:ss] 형식으로 함께 적습니다(영상인 경우).
-- 자료에 없는 내용은 "영상에서는 다루지 않았습니다"라고 먼저 밝힌 뒤, 필요하면 일반 지식임을 표시하고 덧붙입니다.
+- 자료에 없는 내용은 "자료(영상·글)에서는 다루지 않았습니다"라고 먼저 밝힌 뒤, 필요하면 일반 지식임을 표시하고 덧붙입니다.
 - 자동 자막의 받아쓰기 오류로 보이는 단어는 문맥에 맞게 바로잡아 씁니다."""
 
 
