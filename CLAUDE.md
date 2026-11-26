@@ -54,6 +54,8 @@ python3 -m venv .venv
 
 ## 인증 방식 (2026-11-26 테스터 후기 반영)
 - 우선순위: API 키(api_key.txt) → 구독 토큰(claude_token.txt) → **Claude Code 기존 로그인(keychain)**. launchd 환경(크롬과 동일)에서 토큰 없이 연결 시험·요약 성공 확인 → 구독자는 아무것도 넣을 필요 없음. 처음의 "크롬에선 로그인 못 읽음" 결론은 env -i 흉내 환경 때문이었음.
+- **Claude 로그인 버튼**(⚙️): 호스트 action `login` → `claude auth login --claudeai`를 창 없이 분리 실행(start_new_session, 10분 타임아웃, 출력 native_host/login.log) → 브라우저 승인 → localhost 콜백으로 완료. 패널이 3초마다 status 확인해 완료 감지 후 자동 연결 시험. status의 `login`은 `claude auth status --json`(logged_in·만료일만 전달).
+- 데스크톱 앱 로그인(키체인 'Claude Safe Storage')과 Claude Code 로그인('Claude Code-credentials')은 별개라 재사용 불가.
 - status mode: api / token / cli / none. 토큰 저장 시 공백·줄바꿈 제거, •••(가려진 값)·90자 미만 거부, 저장 후 자동 연결 시험.
 - 테스터 후기: Claude 데스크톱 앱 입력창의 setup-token은 •••로 가려짐 → 맥 기본 터미널 사용, 드래그 안 되면 Fn+드래그.
 
@@ -66,7 +68,7 @@ python3 -m venv .venv
 - 안내서 파일명 `INSTALL-GUIDE.html`(윈도우 압축 해제 시 한글 파일명 깨짐 회피), zip은 Python zipfile로 생성.
 
 ## GitHub
-- 비공개 저장소: https://github.com/smdjoo-stack/livewiki-me (main). 테스터 zip은 Releases(v0.1.0 prerelease)에 첨부. 새 버전: `./make_package.sh` → VERSION 파일과 chrome_extension/manifest.json의 version을 함께 올린 뒤 `./make_package.sh` → `gh release create vX.Y.Z dist/LiveWikiMe-vX.Y.Z.zip --prerelease`. 자산 파일명은 영문만(GitHub가 한글 제거).
+- **공개** 저장소(2026-11-27 공개 전환): https://github.com/smdjoo-stack/livewiki-me (main). raon-easypaster는 협업자(쓰기)로 남아 있음. 테스터 zip은 Releases(v0.1.0 prerelease)에 첨부. 새 버전: `./make_package.sh` → VERSION 파일과 chrome_extension/manifest.json의 version을 함께 올린 뒤 `./make_package.sh` → `gh release create vX.Y.Z dist/LiveWikiMe-vX.Y.Z.zip --prerelease`. 자산 파일명은 영문만(GitHub가 한글 제거).
 
 ## 다음에 해볼 만한 것 (사용자가 원할 때)
 1. 실제 PDF 1개로 동작 확인

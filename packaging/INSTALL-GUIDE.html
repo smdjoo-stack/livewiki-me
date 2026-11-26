@@ -99,18 +99,18 @@
   <h2>3단계 · Claude 연결 (처음 한 번)</h2>
   <p>유튜브 영상을 열고 <b>✨ 요약</b>(또는 툴바 아이콘)을 누르면 오른쪽 패널이 열립니다. 오른쪽 위 <b>⚙️</b>에서 <b>연결 시험</b>을 눌러 "✅ 연결 성공"이 나오면 끝입니다.</p>
 
-  <h3>A. Claude 구독(Pro/Max) — 추천, 따로 넣을 것 없음</h3>
+  <h3>A. Claude 구독(Pro/Max) — 추천</h3>
   <ol>
-    <li>Claude Code가 없다면 설치합니다.
+    <li>Claude Code가 없다면 설치합니다. (처음 한 번)
       <ul>
         <li>Mac — <b>터미널</b> 앱에서:<pre>curl -fsSL https://claude.ai/install.sh | bash</pre></li>
         <li>Windows — 시작 메뉴에서 <b>PowerShell</b>을 열고:<pre>irm https://claude.ai/install.ps1 | iex</pre>
           <span class="muted">Windows에서는 <a href="https://git-scm.com/download/win">Git for Windows</a>도 필요할 수 있어요. 오류에 "git-bash"가 보이면 설치하세요.</span></li>
       </ul>
     </li>
-    <li>터미널(Windows는 PowerShell)에서 <code>claude</code> 를 실행해 내 Claude 계정으로 <b>로그인</b>합니다. 이미 Claude Code를 쓰고 있다면 건너뛰세요.
-      <span class="muted">(설치 직후 "command not found" / "인식되지 않습니다"가 나오면 창을 닫았다 다시 열고 실행)</span></li>
-    <li>패널 ⚙️ → <b>연결 시험</b>. "✅ 연결 성공"이면 끝!</li>
+    <li>패널 ⚙️ → <b>[Claude 로그인]</b> 버튼 → 브라우저에 열린 화면에서 내 Claude 계정으로 <b>승인</b>.
+      <span class="muted">(Claude 데스크톱 앱 로그인과는 따로라서 한 번 해 줘야 해요. 이미 Claude Code를 쓰고 있다면 "✅ 로그인됨"으로 보여서 건너뛰면 돼요)</span></li>
+    <li>자동으로 연결 시험을 하고 "✅ 연결 성공"이 나오면 끝!</li>
   </ol>
   <details class="card">
     <summary><b>연결 시험이 실패할 때만: 구독 토큰 넣기</b></summary>
@@ -146,7 +146,7 @@
     <tr><th>증상</th><th>해결</th></tr>
     <tr><td>"요약기에 연결하지 못했어요"</td><td>1단계 설치를 다시 실행 → 크롬을 완전히 종료(Mac ⌘Q / Windows 모든 크롬 창 닫기) 후 다시 열기</td></tr>
     <tr><td>Windows: "git-bash" 관련 오류</td><td><a href="https://git-scm.com/download/win">Git for Windows</a> 설치 후 다시 시도, 또는 API 키 사용</td></tr>
-    <tr><td>"로그인되어 있지 않거나 로그인이 만료"</td><td>터미널(PowerShell)에서 <code>claude</code> 를 실행해 다시 로그인. 그래도 안 되면 구독 토큰 사용</td></tr>
+    <tr><td>"로그인되어 있지 않거나 로그인이 만료"</td><td>패널 ⚙️ → <b>[Claude 로그인]</b>(또는 다시 로그인) → 브라우저에서 승인. 그래도 안 되면 구독 토큰 사용</td></tr>
     <tr><td>"토큰이 올바르지 않거나 만료" / "가려진 값(•••)"</td><td>맥 기본 터미널 앱에서 <code>claude setup-token</code>으로 새 토큰을 받아 끝까지 복사해 다시 저장</td></tr>
     <tr><td>"자막을 가져오지 못했습니다"</td><td>자막(자동 자막 포함)이 없는 영상은 아직 요약할 수 없어요</td></tr>
     <tr><td>"본문을 거의 찾지 못했어요"</td><td>로그인해야 보이는 글이거나 글 대부분이 이미지인 페이지예요. 글이 화면에 다 보이는 상태에서 다시 시도해 보세요</td></tr>

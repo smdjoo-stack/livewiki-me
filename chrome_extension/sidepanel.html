@@ -37,9 +37,9 @@
 
       <h3>Claude 연결 <span class="muted">(아래 중 하나만 되면 돼요)</span></h3>
       <div class="field">
-        <label>⭐ Claude Code 로그인 <span class="muted">— Claude Pro/Max 구독자 추천, 따로 넣을 것 없음</span></label>
-        <p class="muted small">Claude Code가 설치되어 있고 로그인되어 있으면 그대로 써요. 아래 <b>연결 시험</b>만 눌러 보세요.<br>
-        로그인이 안 되어 있다면 터미널(윈도우는 PowerShell)에서 <code>claude</code> 를 한 번 실행해 로그인하세요.</p>
+        <label>⭐ Claude 로그인 <span class="muted">— Claude Pro/Max 구독자 추천</span></label>
+        <div class="row login-row"><span id="login-state" class="small">확인 중…</span><button id="login-btn" class="primary" hidden>Claude 로그인</button></div>
+        <p id="login-msg" class="muted small">버튼을 누르면 브라우저에 Claude 로그인 화면이 열려요. 내 계정으로 <b>승인</b>만 누르면 끝이에요. (Claude 데스크톱 앱 로그인과는 따로예요)</p>
       </div>
       <details class="field" id="token-box">
         <summary><b>구독 토큰</b> <span class="muted">— 위 방법이 안 될 때만</span></summary>

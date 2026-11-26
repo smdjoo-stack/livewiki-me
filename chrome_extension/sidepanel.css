@@ -182,3 +182,6 @@ code { font-size: 12px; background: var(--accent-soft); padding: 0 4px; border-r
 #error-settings { margin-left: 6px; }
 details.field summary { cursor: pointer; font-size: 13px; padding: 4px 0; }
 details.field[open] summary { margin-bottom: 4px; }
+.login-row { justify-content: space-between; margin: 6px 0 4px; }
+.login-row .primary { padding: 6px 14px; }
+#login-msg a { word-break: break-all; }

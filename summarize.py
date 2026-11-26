@@ -69,7 +69,7 @@ def ask_claude_subscription(prompt):
         detail = (r.stderr or r.stdout).strip()[:500]
         if "log" in detail.lower() and ("login" in detail.lower() or "logged" in detail.lower()):
             sys.exit("❌ Claude Code에 로그인되어 있지 않거나 로그인이 만료되었습니다.\n"
-                     "터미널(윈도우는 PowerShell)에서 claude 를 한 번 실행해 로그인한 뒤 다시 시도해 주세요.\n"
+                     "크롬 패널의 ⚙️ 설정에서 [Claude 로그인] 버튼을 눌러 다시 로그인해 주세요.\n"
                      "그래도 안 되면 ⚙️ 설정에서 '구독 토큰'이나 'API 키'를 넣어 주세요.\n\n" + detail)
         if "git-bash" in detail.lower() or "git bash" in detail.lower():
             sys.exit("❌ 윈도우에서 Claude Code를 쓰려면 'Git for Windows'가 필요합니다.\n"

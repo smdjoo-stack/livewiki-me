@@ -12,6 +12,7 @@
              {"ok": false, "error": "..."}
 """
 import json
+import os
 import struct
 import shutil
 import subprocess
@@ -112,6 +113,72 @@ def choose_folder(prompt, start):
     return r.stdout.strip().rstrip("/") or None
 
 
+def claude_exe():
+    """Claude Code 실행 파일 위치 (크롬에서 실행되면 PATH가 짧을 수 있어 기본 설치 위치도 확인)"""
+    exe = shutil.which("claude")
+    if exe:
+        return exe
+    for name in ("claude", "claude.exe"):
+        cand = Path.home() / ".local" / "bin" / name
+        if cand.exists():
+            return str(cand)
+    return None
+
+
+def claude_env():
+    # 로그인 상태는 Claude Code 자체 로그인 기준으로 봄 (토큰·API 키 환경변수 제외)
+    return {k: v for k, v in os.environ.items() if k not in ("ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN")}
+
+
+def auth_status():
+    """claude auth status → 로그인 여부·만료일 (이메일·조직 정보는 넘기지 않음)"""
+    exe = claude_exe()
+    if not exe:
+        return None
+    try:
+        r = subprocess.run([exe, "auth", "status", "--json"], capture_output=True, text=True,
+                           encoding="utf-8", errors="replace", timeout=20, env=claude_env())
+        data = json.loads(r.stdout or "{}")
+    except (subprocess.TimeoutExpired, ValueError, OSError):
+        return {"logged_in": False, "expires": "", "method": ""}
+    return {"logged_in": bool(data.get("loggedIn")), "expires": data.get("loginExpiresAt") or "",
+            "method": data.get("authMethod") or ""}
+
+
+LOGIN_LOG = BASE_DIR / "native_host" / "login.log"
+
+
+def start_login():
+    """브라우저로 Claude 로그인 시작 (터미널 불필요). 승인을 기다리는 동안 따로 살아 있다가 10분 뒤 정리"""
+    import re
+    import time
+    exe = claude_exe()
+    if not exe:
+        return {"ok": False, "error": "Claude Code가 설치되어 있지 않아요."}
+    runner = ("import subprocess,sys\n"
+              "try:\n"
+              "    subprocess.run(sys.argv[1:], stdin=subprocess.DEVNULL, timeout=600)\n"
+              "except Exception:\n"
+              "    pass\n")
+    kw = {}
+    if IS_WIN:
+        kw["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS
+    else:
+        kw["start_new_session"] = True  # 크롬이 요약기를 닫아도 로그인 대기는 계속
+    log = open(LOGIN_LOG, "w", encoding="utf-8")
+    subprocess.Popen([sys.executable, "-c", runner, exe, "auth", "login", "--claudeai"],
+                     stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT, env=claude_env(), **kw)
+    # 브라우저가 안 열렸을 때 쓸 수 있게 로그인 주소를 잠깐 기다려 읽어 둠
+    url = ""
+    for _ in range(16):
+        time.sleep(0.25)
+        m = re.search(r"https://\S*oauth\S*", LOGIN_LOG.read_text(encoding="utf-8", errors="replace"))
+        if m:
+            url = m.group(0)
+            break
+    return {"ok": True, "url": url}
+
+
 def reveal(path):
     """파일 위치를 Finder(맥) / 탐색기(윈도우)에서 보여 줌"""
     if IS_WIN:
@@ -205,7 +272,10 @@ def handle(msg):
         mode = "api" if has_key else ("token" if has_token and has_cli else ("cli" if has_cli else "none"))
         return {"ok": True, "mode": mode, "has_api_key": has_key, "has_token": has_token,
                 "has_cli": has_cli, "save_dir": load_settings()["save_dir"], "model": summarize.MODEL,
-                "os": sys.platform}
+                "os": sys.platform, "login": auth_status() if has_cli else None}
+
+    if action == "login":
+        return start_login()
 
     if action == "set_credential":
         # 패널에서 붙여넣은 구독 토큰/API 키를 파일로 저장 (빈 값이면 삭제)

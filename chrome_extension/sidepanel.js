@@ -596,7 +596,10 @@ async function refreshStatus() {
   let text, good = true;
   if (st.mode === "api") text = "✅ API 키로 연결해요 (쓴 만큼 요금)";
   else if (st.mode === "token") text = "✅ Claude 구독 토큰으로 연결해요";
-  else if (st.mode === "cli") text = "✅ Claude Code 로그인으로 연결해요 — '연결 시험'으로 확인해 보세요";
+  else if (st.mode === "cli" && st.login && !st.login.logged_in) {
+    good = false;
+    text = "⚠️ Claude 로그인이 필요해요. 아래 [Claude 로그인]을 눌러 주세요.";
+  } else if (st.mode === "cli") text = "✅ Claude 로그인으로 연결해요";
   else {
     good = false;
     if (st.has_token) text = "⚠️ 구독 토큰은 있지만 Claude Code가 설치되어 있지 않아요. Claude Code를 설치하거나 API 키를 넣어 주세요.";
@@ -612,8 +615,68 @@ async function refreshStatus() {
   if (st.has_token) $("token-box").open = true;
   if (st.has_api_key || !st.has_cli) $("api-box").open = true;
   $("settings-savedir").textContent = shortPath(st.save_dir);
+  showLoginState(st);
   return st;
 }
+
+// ── Claude 로그인 버튼 (터미널 없이 브라우저로 로그인) ──
+function fmtDate(iso) {
+  try { return new Date(iso).toLocaleDateString("ko-KR", { month: "long", day: "numeric" }); } catch (_) { return ""; }
+}
+
+function showLoginState(st) {
+  const lg = st.login;
+  const btn = $("login-btn");
+  if (!st.has_cli) {
+    $("login-state").textContent = "⚠️ Claude Code가 설치되어 있지 않아요 (설치 안내서 참고)";
+    btn.hidden = true;
+    return;
+  }
+  btn.hidden = false;
+  if (lg && lg.logged_in) {
+    $("login-state").textContent = "✅ 로그인됨" + (lg.expires ? ` · ${fmtDate(lg.expires)}까지` : "");
+    btn.textContent = "다시 로그인";
+    btn.className = "";
+  } else {
+    $("login-state").textContent = "⚠️ 로그인이 필요해요";
+    btn.textContent = "Claude 로그인";
+    btn.className = "primary";
+  }
+}
+
+let loginPoll = null;
+$("login-btn").addEventListener("click", async () => {
+  const before = await askHost({ action: "status" });
+  const prev = (before.ok && before.login) || {};
+  $("login-btn").disabled = true;
+  const r = await askHost({ action: "login" });
+  if (!r.ok) {
+    $("login-btn").disabled = false;
+    $("login-msg").textContent = "⚠️ " + r.error;
+    return;
+  }
+  $("login-msg").innerHTML = "브라우저에서 Claude 계정으로 <b>승인</b>을 눌러 주세요. 끝나면 여기서 자동으로 알아채요." +
+    (r.url ? `<br>브라우저가 안 열렸다면: <a href="${esc(r.url)}" target="_blank">로그인 화면 열기</a>` : "");
+  clearInterval(loginPoll);
+  let tries = 0;
+  loginPoll = setInterval(async () => {
+    tries++;
+    const st = await askHost({ action: "status" });
+    const lg = (st.ok && st.login) || {};
+    const done = lg.logged_in && (!prev.logged_in || lg.expires !== prev.expires);
+    if (done || tries >= 100) {
+      clearInterval(loginPoll);
+      $("login-btn").disabled = false;
+      await refreshStatus();
+      if (done) {
+        $("login-msg").textContent = "✅ 로그인했어요.";
+        runConnTest();
+      } else {
+        $("login-msg").textContent = "로그인을 확인하지 못했어요. 다시 눌러 주세요.";
+      }
+    }
+  }, 3000);
+});
 
 async function setCredential(kind, value) {
   const r = await askHost({ action: "set_credential", kind, value });
@@ -659,9 +722,10 @@ $("settings-setdir").addEventListener("click", async () => {
     $("reveal").textContent = "탐색기";
     document.body.classList.add("win");
   }
-  if (st.ok && st.mode === "none") {
+  const needLogin = st.ok && st.mode === "cli" && st.login && !st.login.logged_in;
+  if (st.ok && (st.mode === "none" || needLogin)) {
     await chrome.storage.session.remove("autostart");
-    openSettings("처음 사용하시네요. Claude 연결부터 설정해 주세요.");
+    openSettings(needLogin ? "Claude 로그인이 필요해요. [Claude 로그인]을 눌러 주세요." : "처음 사용하시네요. Claude 연결부터 설정해 주세요.");
     return;
   }
   if (!st.ok) {

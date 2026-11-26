@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "나만의 라이브위키",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "유튜브 영상과 뉴스·블로그 글을 Claude로 요약해서 옆 패널에 보여줍니다 (개인용).",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArHfVvI9HXjP/tA5GiM7TX5Bc2YiMfZyvgrJuBoaCHptNFCt0l/cnze/6OlKdP698i8FQ8PGtNHFS8Gw5mbuzyz9rBceObHNO3SYDzkWtsE2Tf1UhNG3NlsI3LAyyFrImKIifA5Z2l3nk1Z3aKJkBURNgNafNa8feQnLCt5oym21DqleYn5zQKsvasKI52+ghmfYnvlcN8qQ9XKMUKBE6PoA0KyyOr2VMSg/1fkH/BWtmCLoEPc52Psqn+Rt4mUjXVFN4I1IgeX5vDIqSVTzw004oAenwbKQrR1KtFNsG9A98tc/Xn26OAuG2VFQ8ABPJJU4rsNeZUBIK1I5l5dnf6QIDAQAB",
   "permissions": ["sidePanel", "nativeMessaging", "storage", "tabs", "scripting", "activeTab", "contextMenus"],
