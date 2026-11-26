@@ -12,7 +12,7 @@
 - PDF 요약(터미널에서 `summarize.py`로)
 
 ## 설치 (테스터용)
-1. [Releases](../../releases)에서 `LiveWikiMe-test-날짜.zip`을 내려받아 풉니다. (Mac·Windows 공용)
+1. [Releases](../../releases)에서 `LiveWikiMe-v버전.zip`을 내려받아 풉니다. (Mac·Windows 공용)
 2. 폴더 안의 **INSTALL-GUIDE.html**을 열어 순서대로 따라 합니다.
    - Mac: 터미널에서 `bash ~/Downloads/LiveWikiMe/install.sh`
    - Windows: 압축을 모두 푼 뒤 `install.bat` 더블클릭

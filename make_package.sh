@@ -1,5 +1,5 @@
 #!/bin/bash
-# 테스터에게 보낼 zip 만들기 (Mac + Windows 공용) → dist/LiveWikiMe-test-날짜.zip
+# 테스터에게 보낼 zip 만들기 (Mac + Windows 공용) → dist/LiveWikiMe-v버전.zip  (버전은 VERSION 파일)
 # 개인 파일(토큰·API 키·설정·요약·로그·확장 열쇠)은 넣지 않음
 set -e
 ROOT="$(cd "$(dirname "$0")" && pwd)"
@@ -29,9 +29,16 @@ if grep -rqE "sk-ant-(oat|api)[0-9]{2}-[A-Za-z0-9_-]{20,}" "$PKG"; then
   echo "❌ 토큰/키로 보이는 값이 포함되어 중단합니다"; exit 1
 fi
 
-# Python zipfile로 압축: 윈도우에서도 파일 이름(UTF-8)과 맥 실행 권한이 유지됨
-ZIP="$OUT/LiveWikiMe-test-$(date +%Y%m%d).zip"
+# 버전: VERSION 파일 (크롬 확장 manifest.json의 version과 같아야 함)
+VERSION="$(tr -d '[:space:]' < "$ROOT/VERSION")"
+MANIFEST_VERSION="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["version"])' "$ROOT/chrome_extension/manifest.json")"
+if [ "$VERSION" != "$MANIFEST_VERSION" ]; then
+  echo "❌ VERSION($VERSION)과 manifest.json의 version($MANIFEST_VERSION)이 달라요. 둘을 맞춘 뒤 다시 실행하세요."; exit 1
+fi
+echo "$VERSION" > "$PKG/VERSION"
+ZIP="$OUT/LiveWikiMe-v$VERSION.zip"
 rm -f "$ZIP"
+# Python zipfile로 압축: 윈도우에서도 파일 이름(UTF-8)과 맥 실행 권한이 유지됨
 python3 - "$OUT" "$ZIP" <<'PY'
 import os, sys, zipfile
 out, zpath = sys.argv[1], sys.argv[2]
