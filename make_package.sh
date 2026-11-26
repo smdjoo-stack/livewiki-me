@@ -27,7 +27,7 @@ if grep -rqE "sk-ant-(oat|api)[0-9]{2}-[A-Za-z0-9_-]{20,}" "$PKG"; then
   echo "❌ 토큰/키로 보이는 값이 포함되어 중단합니다"; exit 1
 fi
 
-ZIP="$OUT/LiveWikiMe-테스트판-$(date +%Y%m%d).zip"
+ZIP="$OUT/LiveWikiMe-test-$(date +%Y%m%d).zip"
 rm -f "$ZIP"
 (cd "$OUT" && ditto -c -k --keepParent --norsrc --noextattr LiveWikiMe "$ZIP")
 echo "✅ 만들었어요: $ZIP"

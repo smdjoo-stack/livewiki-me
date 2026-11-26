@@ -12,7 +12,7 @@
 - PDF 요약(터미널에서 `summarize.py`로)
 
 ## 설치 (테스터용)
-1. [Releases](../../releases)에서 `LiveWikiMe-테스트판-날짜.zip`을 내려받아 풉니다.
+1. [Releases](../../releases)에서 `LiveWikiMe-test-날짜.zip`을 내려받아 풉니다.
 2. 폴더 안의 **설치 안내.html**을 열어 순서대로 따라 합니다.
    - 터미널: `bash ~/Downloads/LiveWikiMe/install.sh`
    - 크롬 `chrome://extensions` → 개발자 모드 → 압축해제된 확장 로드 → `~/LiveWikiMe/chrome_extension`

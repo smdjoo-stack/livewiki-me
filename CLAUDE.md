@@ -38,11 +38,14 @@ python3 -m venv .venv
 - 크롬에서 실행되면 keychain 로그인을 못 읽어서 `claude_token.txt`(`claude setup-token`으로 받은 구독 토큰, 108자 한 줄)를 `CLAUDE_CODE_OAUTH_TOKEN`으로 넘김. 비밀 파일.
 
 ## 테스터 배포 (2026-11-26)
-- `./make_package.sh` → `dist/LiveWikiMe-테스트판-날짜.zip` (개인 파일·토큰 들어가면 중단). 원본: `packaging/`(install.sh·uninstall.sh·.command·설치 안내.html).
+- `./make_package.sh` → `dist/LiveWikiMe-test-날짜.zip` (개인 파일·토큰 들어가면 중단). 원본: `packaging/`(install.sh·uninstall.sh·.command·설치 안내.html).
 - 테스터 설치 위치: `~/LiveWikiMe` (문서·다운로드 폴더 권한 문제 회피). install.sh 재실행 = 업데이트(요약·설정·토큰 유지). Chrome/Brave/Edge 연결 등록.
 - 테스터 연결: 패널 ⚙️ 설정에서 구독 토큰(claude setup-token, Claude Code 필요) 또는 API 키(api_key.txt, 우선 적용) 붙여넣기 → 연결 시험. 호스트 action `status`/`set_credential`/`test`.
 - 확인: 가짜 홈 폴더에서 zip→설치→토큰→요약→저장까지 통과, Python 3.9(Mac 기본)에서 패키지·자막 OK. 실제 API 키로는 미시험(키 없음).
 - 사용자 본인 Mac은 기존 방식(프로젝트 폴더 + `~/Library/Application Support/livewiki/run_host.sh`) 그대로.
+
+## GitHub
+- 비공개 저장소: https://github.com/smdjoo-stack/livewiki-me (main). 테스터 zip은 Releases(v0.1.0 prerelease)에 첨부. 새 버전: `./make_package.sh` → `gh release create vX.Y.Z dist/LiveWikiMe-test-날짜.zip --prerelease`. 자산 파일명은 영문만(GitHub가 한글 제거).
 
 ## 다음에 해볼 만한 것 (사용자가 원할 때)
 1. 실제 PDF 1개로 동작 확인
