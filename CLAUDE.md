@@ -44,6 +44,11 @@ python3 -m venv .venv
 - 확인: 가짜 홈 폴더에서 zip→설치→토큰→요약→저장까지 통과, Python 3.9(Mac 기본)에서 패키지·자막 OK. 실제 API 키로는 미시험(키 없음).
 - 사용자 본인 Mac은 기존 방식(프로젝트 폴더 + `~/Library/Application Support/livewiki/run_host.sh`) 그대로.
 
+## 인증 방식 (2026-11-26 테스터 후기 반영)
+- 우선순위: API 키(api_key.txt) → 구독 토큰(claude_token.txt) → **Claude Code 기존 로그인(keychain)**. launchd 환경(크롬과 동일)에서 토큰 없이 연결 시험·요약 성공 확인 → 구독자는 아무것도 넣을 필요 없음. 처음의 "크롬에선 로그인 못 읽음" 결론은 env -i 흉내 환경 때문이었음.
+- status mode: api / token / cli / none. 토큰 저장 시 공백·줄바꿈 제거, •••(가려진 값)·90자 미만 거부, 저장 후 자동 연결 시험.
+- 테스터 후기: Claude 데스크톱 앱 입력창의 setup-token은 •••로 가려짐 → 맥 기본 터미널 사용, 드래그 안 되면 Fn+드래그.
+
 ## Windows 지원 (2026-11-26, 실제 윈도우에서는 미시험)
 - 설치: `install.bat`(ASCII·CRLF, Python 찾기/없으면 winget) → `install_win.py`(복사 `%USERPROFILE%\LiveWikiMe`, venv, manifest json, 레지스트리 HKCU\Software\{Google\Chrome|Microsoft\Edge|BraveSoftware\Brave-Browser|Chromium}\NativeMessagingHosts\com.livewiki.me).
 - 시작 프로그램 `native_host/run_host.bat`: `python -I -X utf8` (한국어 윈도우 CP949 문제 회피), PATH에 `%USERPROFILE%\.local\bin`·`%APPDATA%\npm` 추가.

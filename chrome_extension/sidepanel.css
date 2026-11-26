@@ -180,3 +180,5 @@ code { font-size: 12px; background: var(--accent-soft); padding: 0 4px; border-r
 #settings a { color: var(--accent); }
 .set-close { margin-top: 28px; }
 #error-settings { margin-left: 6px; }
+details.field summary { cursor: pointer; font-size: 13px; padding: 4px 0; }
+details.field[open] summary { margin-bottom: 4px; }

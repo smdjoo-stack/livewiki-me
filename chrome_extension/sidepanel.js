@@ -515,13 +515,13 @@ async function refreshStatus() {
     return st;
   }
   let text, good = true;
-  if (st.mode === "api") text = "✅ API 키로 연결돼요 (쓴 만큼 요금)";
-  else if (st.mode === "token") text = "✅ Claude 구독 토큰으로 연결돼요";
+  if (st.mode === "api") text = "✅ API 키로 연결해요 (쓴 만큼 요금)";
+  else if (st.mode === "token") text = "✅ Claude 구독 토큰으로 연결해요";
+  else if (st.mode === "cli") text = "✅ Claude Code 로그인으로 연결해요 — '연결 시험'으로 확인해 보세요";
   else {
     good = false;
-    if (st.has_token && !st.has_cli) text = "⚠️ 구독 토큰은 있지만 Claude Code가 설치되어 있지 않아요. Claude Code를 설치하거나 API 키를 넣어 주세요.";
-    else if (st.has_cli) text = "⚠️ 아직 연결 정보가 없어요. 아래 ① 구독 토큰을 넣어 주세요.";
-    else text = "⚠️ 아직 연결 정보가 없어요. ② API 키를 넣거나, Claude Code를 설치한 뒤 ① 구독 토큰을 넣어 주세요.";
+    if (st.has_token) text = "⚠️ 구독 토큰은 있지만 Claude Code가 설치되어 있지 않아요. Claude Code를 설치하거나 API 키를 넣어 주세요.";
+    else text = "⚠️ Claude Code가 설치되어 있지 않아요. Claude Code를 설치해 로그인하거나(구독자), API 키를 넣어 주세요.";
   }
   card.className = "status-card " + (good ? "good" : "warn");
   card.textContent = text + `  · 모델: ${st.model}`;
@@ -529,15 +529,31 @@ async function refreshStatus() {
   $("api-input").placeholder = st.has_api_key ? "저장됨 — 바꾸려면 새로 붙여넣기" : "sk-ant-api…";
   $("token-del").hidden = !st.has_token;
   $("api-del").hidden = !st.has_api_key;
+  // 이미 쓰고 있는 방법은 펼쳐서 보여 줌
+  if (st.has_token) $("token-box").open = true;
+  if (st.has_api_key || !st.has_cli) $("api-box").open = true;
   $("settings-savedir").textContent = shortPath(st.save_dir);
   return st;
 }
 
 async function setCredential(kind, value) {
   const r = await askHost({ action: "set_credential", kind, value });
-  $("conn-test-result").textContent = r.ok ? (r.deleted ? "지웠어요." : "저장했어요. '연결 시험'을 눌러 확인해 보세요.") : "⚠️ " + r.error;
+  if (!r.ok) {
+    $("conn-test-result").textContent = "⚠️ " + r.error; // 잘못된 값은 입력칸에 남겨 둠
+    return;
+  }
   $(kind === "token" ? "token-input" : "api-input").value = "";
-  refreshStatus();
+  await refreshStatus();
+  if (r.deleted) $("conn-test-result").textContent = "지웠어요.";
+  else runConnTest(); // 저장하자마자 연결 시험
+}
+
+async function runConnTest() {
+  $("conn-test").disabled = true;
+  $("conn-test-result").textContent = "시험 중… (10초쯤)";
+  const r = await askHost({ action: "test" });
+  $("conn-test").disabled = false;
+  $("conn-test-result").textContent = r.ok ? "✅ 연결 성공! 이제 유튜브에서 ✨ 요약을 눌러 보세요." : "⚠️ " + r.error;
 }
 
 $("gear").addEventListener("click", () => (viewState === "settings" ? closeSettings() : openSettings()));
@@ -547,13 +563,7 @@ $("token-save").addEventListener("click", () => setCredential("token", $("token-
 $("api-save").addEventListener("click", () => setCredential("api", $("api-input").value));
 $("token-del").addEventListener("click", () => setCredential("token", ""));
 $("api-del").addEventListener("click", () => setCredential("api", ""));
-$("conn-test").addEventListener("click", async () => {
-  $("conn-test").disabled = true;
-  $("conn-test-result").textContent = "시험 중… (10초쯤)";
-  const r = await askHost({ action: "test" });
-  $("conn-test").disabled = false;
-  $("conn-test-result").textContent = r.ok ? "✅ 연결 성공! 이제 유튜브에서 ✨ 요약을 눌러 보세요." : "⚠️ " + r.error;
-});
+$("conn-test").addEventListener("click", runConnTest);
 $("settings-setdir").addEventListener("click", async () => {
   const r = await askHost({ action: "set_save_dir" });
   if (r.ok) {

@@ -188,7 +188,8 @@ def handle(msg):
         has_token = (BASE_DIR / "claude_token.txt").exists()
         has_cli = _sh.which("claude") is not None or any(
             (Path.home() / ".local" / "bin" / n).exists() for n in ("claude", "claude.exe"))
-        mode = "api" if has_key else ("token" if has_token and has_cli else "none")
+        # api: API 키 / token: 구독 토큰 / cli: Claude Code에 로그인된 상태 그대로 사용 / none: 없음
+        mode = "api" if has_key else ("token" if has_token and has_cli else ("cli" if has_cli else "none"))
         return {"ok": True, "mode": mode, "has_api_key": has_key, "has_token": has_token,
                 "has_cli": has_cli, "save_dir": load_settings()["save_dir"], "model": summarize.MODEL,
                 "os": sys.platform}
@@ -202,10 +203,14 @@ def handle(msg):
         if kind not in files:
             return {"ok": False, "error": "알 수 없는 종류"}
         target = BASE_DIR / files[kind]
-        value = (msg.get("value") or "").strip()
+        # 터미널에서 복사하면 줄바꿈·공백이 끼어들 수 있어 모두 제거
+        value = re.sub(r"\s+", "", msg.get("value") or "")
         if not value:
             target.unlink(missing_ok=True)
             return {"ok": True, "deleted": True}
+        if any(ch in value for ch in "•●·*…"):
+            return {"ok": False, "error": "가려진 값(•••)이 들어 있어요. Claude 앱 안이 아니라 맥 기본 '터미널' 앱"
+                                          "(윈도우는 PowerShell)에서 다시 실행해 복사해 주세요."}
         m = re.search(r"sk-ant-[a-z]+\d*-[A-Za-z0-9_\-]+", value)
         # 여러 번 붙여넣어 이어 붙은 경우 첫 번째 것만 사용
         if m and value.count("sk-ant-") > 1:
@@ -213,6 +218,8 @@ def handle(msg):
         if not m or not m.group(0).startswith(prefix[kind]):
             hint = "sk-ant-oat…로 시작하는 구독 토큰을" if kind == "token" else "sk-ant-api…로 시작하는 API 키를"
             return {"ok": False, "error": f"형식이 맞지 않아요. {hint} 붙여넣어 주세요."}
+        if len(m.group(0)) < 90:
+            return {"ok": False, "error": "값이 너무 짧아요. 앞부분만 복사된 것 같아요. 끝까지 전부 복사해 주세요."}
         target.write_text(m.group(0), encoding="utf-8")
         target.chmod(0o600)
         return {"ok": True}
