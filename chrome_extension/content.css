@@ -1,0 +1,16 @@
+#livewiki-summarize-btn {
+  margin: 8px 0 0 0;
+  padding: 0 16px;
+  height: 36px;
+  border: none;
+  border-radius: 18px;
+  background: #6c4ce0;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  align-self: center;
+}
+#livewiki-summarize-btn:hover {
+  background: #5838c8;
+}

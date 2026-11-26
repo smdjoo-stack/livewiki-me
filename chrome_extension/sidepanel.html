@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>라이브위키</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+  <header>
+    <div class="brand">✨ 나만의 라이브위키 <button id="gear" class="gear" title="설정">⚙️</button></div>
+    <nav id="tabs" hidden></nav>
+  </header>
+
+  <main>
+    <section id="idle" class="state" hidden>
+      <p class="muted" id="idle-text">유튜브 영상 페이지에서 사용할 수 있어요.</p>
+      <button id="start" class="primary" hidden>이 영상 요약하기</button>
+    </section>
+
+    <section id="loading" class="state" hidden>
+      <div class="spinner"></div>
+      <p><b>요약 중…</b></p>
+      <p class="muted">보통 30초~1분, 긴 영상은 몇 분 걸려요.<br>이 패널은 열어 두세요.</p>
+      <p class="muted" id="loading-next" hidden>⏭ 끝나면 다음 영상을 이어서 요약해요.</p>
+    </section>
+
+    <section id="error" class="state" hidden>
+      <p class="error-title">요약하지 못했어요</p>
+      <pre id="error-text"></pre>
+      <button id="retry" class="primary">다시 시도</button>
+      <button id="error-settings">⚙️ 설정 열기</button>
+    </section>
+
+    <section id="settings" hidden>
+      <h2 class="set-title">⚙️ 설정</h2>
+      <div id="conn-status" class="status-card">확인 중…</div>
+
+      <h3>Claude 연결 <span class="muted">(둘 중 하나만 있으면 돼요)</span></h3>
+      <div class="field">
+        <label>① 구독 토큰 <span class="muted">— Claude Pro/Max 구독 + Claude Code 설치</span></label>
+        <p class="muted small">터미널에서 <code>claude setup-token</code> 실행 → 브라우저에서 승인 → 화면에 나온 <code>sk-ant-oat…</code> 값을 아래에 붙여넣기</p>
+        <div class="row"><input type="password" id="token-input" placeholder="sk-ant-oat…" autocomplete="off"><button id="token-save">저장</button></div>
+        <button class="link" id="token-del" hidden>저장된 토큰 지우기</button>
+      </div>
+      <div class="field">
+        <label>② API 키 <span class="muted">— 구독이 없을 때, 쓴 만큼 요금</span></label>
+        <p class="muted small"><a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a> → API Keys에서 만든 <code>sk-ant-api…</code> 값을 붙여넣기. API 키가 있으면 구독 토큰보다 먼저 써요.</p>
+        <div class="row"><input type="password" id="api-input" placeholder="sk-ant-api…" autocomplete="off"><button id="api-save">저장</button></div>
+        <button class="link" id="api-del" hidden>저장된 API 키 지우기</button>
+      </div>
+      <div class="row test-row"><button id="conn-test" class="primary">연결 시험</button><span id="conn-test-result" class="muted"></span></div>
+
+      <h3>저장 폴더</h3>
+      <p class="small"><b id="settings-savedir">—</b></p>
+      <button id="settings-setdir">기본 폴더 바꾸기…</button>
+
+      <div class="set-close"><button id="settings-close">← 돌아가기</button></div>
+    </section>
+
+    <article id="result" hidden>
+      <div id="doc-head"></div>
+      <div id="sections"></div>
+    </article>
+  </main>
+
+  <footer id="tools" hidden>
+    <span id="save-note" class="muted"></span>
+    <button id="copy-sec">복사</button>
+    <button id="copy-all">전체 복사</button>
+    <span class="split">
+      <button id="save" class="save">💾 저장</button><button id="save-more" class="save caret" title="저장 위치 고르기">▾</button>
+      <div id="save-menu" hidden>
+        <div class="menu-head">기본 폴더<br><b id="save-dir-name">summaries</b></div>
+        <button data-act="other">다른 곳에 저장…</button>
+        <button data-act="setdir">기본 폴더 바꾸기…</button>
+      </div>
+    </span>
+    <button id="reveal" hidden>Finder</button>
+    <button id="redo">다시 요약</button>
+  </footer>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+# 비밀·개인 파일 (절대 올리지 않음)
+claude_token.txt
+api_key.txt
+settings.json
+*.pem
+
+# 요약 결과·임시 파일
+summaries/
+.drafts/
+native_host/host.log
+
+# 빌드·환경
+dist/
+.venv/
+__pycache__/
+.DS_Store
